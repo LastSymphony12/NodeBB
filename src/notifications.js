@@ -83,8 +83,11 @@ Notifications.getMultiple = async function (nids) {
 
 	const userKeys = notifications.map(n => n && n.from);
 	const usersData = await User.getUsersFields(userKeys, ['username', 'userslug', 'picture']);
-
+	function imageNotFound(image) {
+		return (image === 'brand:logo' || !image);
+	}
 	notifications.forEach((notification, index) => {
+		console.log("mvanbrie Start forEach");
 		if (notification) {
 			intFields.forEach((field) => {
 				if (notification.hasOwnProperty(field)) {
@@ -106,10 +109,11 @@ Notifications.getMultiple = async function (nids) {
 				if (notification.user.username === '[[global:guest]]') {
 					notification.bodyShort = notification.bodyShort.replace(/([\s\S]*?),[\s\S]*?,([\s\S]*?)/, '$1, [[global:guest]], $2');
 				}
-			} else if (notification.image === 'brand:logo' || !notification.image) {
+			} else if (imageNotFound(notification.image)) {
 				notification.image = meta.config['brand:logo'] || `${nconf.get('relative_path')}/logo.png`;
 			}
 		}
+		console.log("mvanbrie Complete forEach");
 	});
 	return notifications;
 };
@@ -437,12 +441,13 @@ Notifications.merge = async function (notifications) {
 				}
 				return 'multiple';
 			}
-			let set;
-			if (differentiator === 0 && differentiators.length === 1) {
-				set = isolated;
-			} else {
-				set = isolated.filter(n => n.mergeId === (`${mergeId}|${differentiator}`));
+			function isSetIsolated(differentiator, length) {
+				if (differentiator === 0 || length === 1) {
+					return isolated;
+				}
+				return isolated.filter(n => n.mergeId === (`${mergeId}|${differentiator}`));
 			}
+			const set = isSetIsolated(differentiator, differentiators.length);
 
 			const modifyIndex = notifications.indexOf(set[0]);
 			if (modifyIndex === -1 || set.length === 1) {
@@ -461,10 +466,10 @@ Notifications.merge = async function (notifications) {
 
 				case 'notifications:user-posted-in-public-room': {
 					const usernames = _.uniq(set.map(notifObj => notifObj && notifObj.user && notifObj.user.displayname));
-					if (usernames.length === 2 || usernames.length === 3) {
-						notifObj.bodyShort = `[[${mergeId}-${typeFromLength(usernames)}, ${usernames.join(', ')}, ${notifObj.roomIcon}, ${notifObj.roomName}]]`;
-					} else if (usernames.length > 3) {
+					if (usernames.length > 3) {
 						notifObj.bodyShort = `[[${mergeId}-${typeFromLength(usernames)}, ${usernames.slice(0, 2).join(', ')}, ${usernames.length - 2}, ${notifObj.roomIcon}, ${notifObj.roomName}]]`;
+					} else if (usernames.length > 1) {
+						notifObj.bodyShort = `[[${mergeId}-${typeFromLength(usernames)}, ${usernames.join(', ')}, ${notifObj.roomIcon}, ${notifObj.roomName}]]`;
 					}
 
 					notifObj.path = set[set.length - 1].path;
@@ -482,12 +487,11 @@ Notifications.merge = async function (notifications) {
 					let titleEscaped = title.replace(/%/g, '&#37;').replace(/,/g, '&#44;');
 					titleEscaped = titleEscaped ? (`, ${titleEscaped}`) : '';
 
-					if (numUsers === 2 || numUsers === 3) {
-						notifications[modifyIndex].bodyShort = `[[${mergeId}-${typeFromLength(usernames)}, ${usernames.join(', ')}${titleEscaped}]]`;
-					} else if (numUsers > 2) {
+					if (numUsers > 3) {
 						notifications[modifyIndex].bodyShort = `[[${mergeId}-${typeFromLength(usernames)}, ${usernames.slice(0, 2).join(', ')}, ${numUsers - 2}${titleEscaped}]]`;
+					} else if (numUsers > 1) {
+						notifications[modifyIndex].bodyShort = `[[${mergeId}-${typeFromLength(usernames)}, ${usernames.join(', ')}${titleEscaped}]]`;
 					}
-
 					notifications[modifyIndex].path = set[set.length - 1].path;
 				} break;
 
