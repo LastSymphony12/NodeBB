@@ -87,7 +87,6 @@ Notifications.getMultiple = async function (nids) {
 		return (image === 'brand:logo' || !image);
 	}
 	notifications.forEach((notification, index) => {
-		console.log("mvanbrie Start forEach");
 		if (notification) {
 			intFields.forEach((field) => {
 				if (notification.hasOwnProperty(field)) {
@@ -113,7 +112,6 @@ Notifications.getMultiple = async function (nids) {
 				notification.image = meta.config['brand:logo'] || `${nconf.get('relative_path')}/logo.png`;
 			}
 		}
-		console.log("mvanbrie Complete forEach");
 	});
 	return notifications;
 };
